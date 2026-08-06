@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <!--
+        Ticket de tienda (factura simplificada).
+
+        Se elimina el bloque de dirección de tienda y el "con tecnología de
+        Odoo" del final: los datos de empresa van arriba, en el encabezado
+        configurado en pos.config.receipt_header.
+    -->
+    <t t-name="cs_bebemalaga_reports.OrderReceipt"
+       t-inherit="point_of_sale.OrderReceipt"
+       t-inherit-mode="extension">
+
+        <!-- Cabecera de columnas del detalle -->
+        <xpath expr="//OrderDisplay" position="before">
+            <div class="d-flex justify-content-between border-bottom fw-bolder"
+                 style="font-size: 85%;">
+                <span>ARTICULO</span>
+                <span>UNID · PRECIO · IMPORTE</span>
+            </div>
+        </xpath>
+
+        <!-- Bloque de dirección de tienda al pie: sobra -->
+        <xpath expr="//div[hasclass('pos-config-name')]/../.." position="replace"/>
+
+        <!--
+            "Con tecnología de Odoo".
+
+            No se selecciona por clase: la clase 'footer-powered-by' solo
+            existe en compilaciones recientes de Odoo 19 y no está en la que
+            corre aquí. El div se identifica por ser el único
+            'pos-receipt-order-data' con un <span> directo.
+        -->
+        <xpath expr="//div[hasclass('pos-receipt-order-data')][span]" position="replace"/>
+
+    </t>
+
+    <!--
+        Encabezado: el número de caja acompaña al número de ticket y al
+        vendedor, como en el ticket de tienda.
+    -->
+    <t t-name="cs_bebemalaga_reports.ReceiptHeader"
+       t-inherit="point_of_sale.ReceiptHeader"
+       t-inherit-mode="extension">
+
+        <xpath expr="//div[hasclass('cashier')]" position="before">
+            <div t-if="order.config.name">Id Caja: <t t-esc="order.config.name"/></div>
+        </xpath>
+
+    </t>
+
+</templates>

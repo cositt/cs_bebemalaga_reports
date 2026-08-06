@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        Presupuesto y pedido.
+
+        Ambos usan la misma plantilla base; Odoo cambia solo el título según
+        el estado del documento, así que un único parche cubre los dos.
+    -->
+    <template id="report_saleorder_document_bm"
+              inherit_id="sale.report_saleorder_document">
+
+        <!-- La columna de impuestos se sustituye por la de descuento -->
+        <xpath expr="//t[@t-set='display_taxes']" position="attributes">
+            <attribute name="t-value">False</attribute>
+        </xpath>
+
+        <!-- El descuento se muestra siempre, no solo cuando alguna línea lo lleva -->
+        <xpath expr="//t[@t-set='display_discount']" position="attributes">
+            <attribute name="t-value">True</attribute>
+        </xpath>
+
+        <xpath expr="//th[@name='th_discount']" position="replace">
+            <th name="th_discount" t-if="display_discount" class="text-end">
+                <span>Descuento</span>
+            </th>
+        </xpath>
+
+        <!-- Cantidad: solo el número entero, sin decimales ni unidad de medida -->
+        <xpath expr="//td[@name='td_product_quantity']" position="replace">
+            <td name="td_product_quantity" class="o_td_quantity text-end">
+                <span t-field="line.product_uom_qty"
+                      t-options="{'widget': 'integer'}"
+                      class="text-nowrap">3</span>
+            </td>
+        </xpath>
+
+        <!-- Descuento como porcentaje entero -->
+        <xpath expr="//td[@name='td_product_discount']" position="replace">
+            <td t-if="display_discount" name="td_product_discount" class="text-end">
+                <t t-if="not collapse_prices">
+                    <span t-if="line.discount" class="text-nowrap">
+                        <t t-out="line.discount" t-options="{'widget': 'integer'}"/>%
+                    </span>
+                </t>
+            </td>
+        </xpath>
+
+        <!-- Forma de pago junto al resto de datos de cabecera -->
+        <xpath expr="//div[@id='informations']" position="inside">
+            <div t-if="doc.payment_term_id" class="col" name="bm_payment_term">
+                <strong>Forma de pago</strong>
+                <div t-field="doc.payment_term_id">Efectivo</div>
+            </div>
+        </xpath>
+
+        <!-- Importe cobrado y pendiente, solo en pedidos confirmados -->
+        <xpath expr="//table[hasclass('o_total_table')]" position="inside">
+            <t t-if="doc.state not in ('draft', 'sent')">
+                <tr class="border-black o_subtotal" name="bm_amount_paid">
+                    <td><strong>Importe cobrado</strong></td>
+                    <td class="text-end">
+                        <span t-field="doc.amount_paid">0,00</span>
+                    </td>
+                </tr>
+                <tr name="bm_amount_pending">
+                    <td><strong>Importe pendiente</strong></td>
+                    <td class="text-end">
+                        <span t-field="doc.amount_pending">0,00</span>
+                    </td>
+                </tr>
+            </t>
+        </xpath>
+
+        <!-- Recuadro de firma de conformidad y avisos legales al pie -->
+        <xpath expr="//div[@name='so_total_summary']" position="after">
+            <t t-call="cs_bebemalaga_reports.conformity_signature">
+                <t t-set="signature_image" t-value="doc.signature"/>
+                <t t-set="signature_name" t-value="doc.signed_by"/>
+            </t>
+            <t t-call="cs_bebemalaga_reports.legal_notes"/>
+        </xpath>
+
+    </template>
+
+    <!--
+        El cliente pide "Base imponible"; la traducción por defecto de
+        "Untaxed Amount" en es_ES es "Importe base".
+
+        Se parchea la copia primary que Odoo mantiene justo para esto, no la
+        plantilla base, que está heredada por medio mundo.
+    -->
+    <template id="document_tax_totals_bm" inherit_id="sale.document_tax_totals">
+        <xpath expr="//tr[hasclass('o_subtotal')]/td[1]" position="replace">
+            <td>Base imponible</td>
+        </xpath>
+    </template>
+
+    <!--
+        Recuadro de firma compartido por presupuesto, pedido, albarán,
+        factura y documento de mercancía retirada.
+    -->
+    <template id="conformity_signature">
+        <div class="row mt-4" name="bm_conformity_signature">
+            <div class="col-5 offset-7">
+                <div class="border rounded p-2 text-center"
+                     style="min-height: 3cm;">
+                    <strong>Firma de conformidad</strong>
+                    <div t-if="signature_image" class="mt-1">
+                        <img t-att-src="image_data_uri(signature_image)"
+                             style="max-height: 2cm; max-width: 6cm;"/>
+                        <div t-if="signature_name" t-out="signature_name">Nombre</div>
+                    </div>
+                </div>
+                <div class="text-center small text-muted">Conforme cliente</div>
+            </div>
+        </div>
+    </template>
+
+    <!--
+        Avisos legales al pie, compartidos por presupuesto, pedido, albarán,
+        factura y documento de mercancía retirada.
+
+        Van en el módulo y no en res.company.report_footer a propósito: el
+        pie de empresa sale en todos los informes de la base (compras,
+        inventario…) y estos textos son solo de documentos de venta. Aquí
+        además viajan con el módulo en lugar de vivir sueltos en la
+        configuración de producción.
+    -->
+    <template id="legal_notes">
+        <!--
+            El bloque no debe partirse entre páginas: sin esto el
+            presupuesto largo dejaba la primera línea al final de la página 1
+            y las otras tres sueltas en la 2.
+        -->
+        <div class="mt-4 small" name="bm_legal_notes"
+             style="page-break-inside: avoid; break-inside: avoid;">
+            <div>- Informamos a los clientes que disponen de un plazo de 1 mes desde el momento que hayan sido avisados de que el artículo está en nuestro almacén para recoger su pedido.</div>
+            <div>- Los artículos comprados en OUTLET no tendrán cambio ni devolución.</div>
+            <div>- Por política de empresa para la devolución de cualquier artículo, el cliente dispone de un plazo máximo de 30 días desde la fecha de compra y sólo será canjeado por otro artículo o por un vale.</div>
+            <div>- Todos los productos incluyen el 21% de IVA.</div>
+        </div>
+    </template>
+
+</odoo>

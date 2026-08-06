@@ -1,0 +1,22 @@
+/*
+    Ticket de tienda: tamaño de letra al imprimir.
+
+    El core fuerza 14px sobre un ancho de 266px. Con esa medida un ticket de
+    tres artículos ya no cabe en una página: el pie legal — condiciones de
+    devolución, "FACTURA SIMPLIFICADA" y la despedida — se va a la segunda,
+    que es lo que el cliente vio como "no sale todo".
+
+    A 11px el mismo ticket entra entero en una página y el texto sigue
+    siendo legible. Ojo: es un paliativo, no una garantía — un ticket con
+    bastantes más líneas volverá a paginar. En rollo térmico continuo el
+    problema no existe, solo aparece al imprimir en hoja.
+
+    Lleva !important porque la regla del core también lo lleva.
+*/
+@media print {
+
+    .render-container .pos-receipt {
+        font-size: 11px !important;
+    }
+
+}

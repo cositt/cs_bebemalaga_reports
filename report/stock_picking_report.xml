@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        Albarán.
+
+        Lleva la misma información que el resto de documentos salvo los
+        importes: solo referencia, descripción y cantidad de piezas.
+    -->
+    <template id="report_delivery_document_bm"
+              inherit_id="stock.report_delivery_document">
+
+        <!--
+            Cabeceras de columna: la plantilla base las trae en inglés y no
+            hay traducción cargada para ellas en esta instalación.
+        -->
+        <xpath expr="//th[@name='th_sm_product']" position="replace">
+            <th name="th_sm_product"><strong>Descripción</strong></th>
+        </xpath>
+        <xpath expr="//th[@name='th_sm_ordered']" position="replace">
+            <th name="th_sm_ordered" class="text-end"><strong>Pedido</strong></th>
+        </xpath>
+        <xpath expr="//th[@name='th_sm_quantity']" position="replace">
+            <th name="th_sm_quantity" class="text-end"><strong>Entregado</strong></th>
+        </xpath>
+        <xpath expr="//th[@name='th_sml_product']" position="replace">
+            <th name="th_sml_product">Descripción</th>
+        </xpath>
+        <xpath expr="//th[@name='th_sml_qty_ordered']" position="replace">
+            <th name="th_sml_qty_ordered" class="text-end" t-if="not has_serial_number">
+                Pedido
+            </th>
+        </xpath>
+        <xpath expr="//th[@name='th_sml_quantity']" position="replace">
+            <th name="th_sml_quantity" class="text-end">Entregado</th>
+        </xpath>
+
+        <!--
+            Cantidades sin la unidad de medida, igual que en el resto de
+            documentos. La plantilla base ya imprime el número entero
+            mediante format_number, solo sobra el "Unidades".
+        -->
+        <xpath expr="//table[@name='stock_move_table']//span[@t-field='move.product_uom']"
+               position="replace"/>
+
+        <!--
+            Recuadro de firma. El nativo solo aparece cuando el albarán ya
+            está firmado, y hace falta el recuadro impreso para que el
+            cliente firme en papel.
+        -->
+        <xpath expr="//div[@name='signature']" position="replace">
+            <t t-call="cs_bebemalaga_reports.conformity_signature">
+                <t t-set="signature_image" t-value="o.signature"/>
+                <t t-set="signature_name" t-value="o.partner_id.name"/>
+            </t>
+            <t t-call="cs_bebemalaga_reports.legal_notes"/>
+        </xpath>
+
+    </template>
+
+    <!--
+        Líneas agrupadas del albarán ya validado: mismo criterio de cantidad.
+
+        Se selecciona por la expresión del span y con el eje descendiente,
+        no por posición ni por hijo directo: hay otros módulos
+        (stock_delivery) insertando celdas en estas filas, y según la
+        compilación de Odoo los spans van envueltos en un t-if o cuelgan
+        directamente del td.
+    -->
+    <template id="stock_report_delivery_aggregated_move_lines_bm"
+              inherit_id="stock.stock_report_delivery_aggregated_move_lines">
+        <xpath expr="//td[@name='move_line_aggregated_qty_ordered']//span[@t-out=&quot;aggregated_lines[line]['product_uom'].name&quot;]"
+               position="replace"/>
+        <xpath expr="//td[@name='move_line_aggregated_quantity']//span[@t-out=&quot;aggregated_lines[line]['product_uom'].name&quot;]"
+               position="replace"/>
+    </template>
+
+</odoo>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+
+    <!--
+        Línea del ticket de tienda.
+
+        La plantilla base coloca cantidad y descripción como columnas de un
+        flex centrado verticalmente. Metiendo ahí también la referencia, el
+        nombre se quedaba en una columna estrecha y centrada a media altura:
+        con nombres largos el resultado era ilegible.
+
+        Aquí el nombre ocupa todo el ancho que le queda a la línea, y la
+        referencia baja a la lista de detalle junto al precio unitario:
+
+            1  Carrito de bebé City Tour 2 Baby Jogger (Exposición)  899,00 €
+               AUTO-92364 · 899,00 €/ud
+    -->
+    <t t-name="cs_bebemalaga_reports.Orderline"
+       t-inherit="point_of_sale.Orderline"
+       t-inherit-mode="extension">
+
+        <!--
+            Alineación arriba en lugar de centrada: con el nombre a varias
+            líneas, la cantidad y el importe deben quedar a la altura de la
+            primera, no flotando en mitad del bloque.
+        -->
+        <xpath expr="//div[hasclass('line-details')]" position="attributes">
+            <attribute name="t-att-class">{ 'align-items-start': vals.isReceipt }</attribute>
+        </xpath>
+        <xpath expr="//div[hasclass('product-name')]" position="attributes">
+            <attribute name="t-att-class">{ 'align-items-start': vals.isReceipt }</attribute>
+        </xpath>
+
+        <!--
+            Referencia, precio unitario y descuento en un solo renglón.
+
+            Sustituye al del core, que imprime "899,00 € / Unidades": el
+            nombre de la unidad de medida no aporta nada en tienda y gasta
+            una línea de papel por artículo.
+        -->
+        <xpath expr="//li[hasclass('price-per-unit')][1]" position="replace">
+            <t t-if="vals.isReceipt">
+                <li class="bm-line-info">
+                    <t t-if="vals.bmProductRef"><t t-esc="vals.bmProductRef"/></t>
+                    <t t-if="vals.bmProductRef and vals.bmUnitPrice"> · </t>
+                    <t t-if="vals.bmUnitPrice"><t t-esc="vals.bmUnitPrice"/>/ud</t>
+                    <t t-if="vals.bmDiscount"> <t t-esc="vals.bmDiscount"/></t>
+                </li>
+            </t>
+            <t t-else="">
+                <li t-if="vals.displayPriceUnit" class="price-per-unit"
+                    t-out="vals.displayPriceUnit"/>
+            </t>
+        </xpath>
+
+        <!-- El descuento en inglés del core sobra: ya va en el renglón de arriba -->
+        <xpath expr="//li[@t-if='vals.discount']" position="attributes">
+            <attribute name="t-if">vals.discount and !vals.isReceipt</attribute>
+        </xpath>
+
+    </t>
+
+</templates>
