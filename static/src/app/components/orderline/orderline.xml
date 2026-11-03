@@ -25,37 +25,40 @@
             primera, no flotando en mitad del bloque.
         -->
         <xpath expr="//div[hasclass('line-details')]" position="attributes">
-            <attribute name="t-att-class">{ 'align-items-start': vals.isReceipt }</attribute>
+            <attribute name="t-att-class">{ 'align-items-start': bmIsReceipt }</attribute>
         </xpath>
         <xpath expr="//div[hasclass('product-name')]" position="attributes">
-            <attribute name="t-att-class">{ 'align-items-start': vals.isReceipt }</attribute>
+            <attribute name="t-att-class">{ 'align-items-start': bmIsReceipt }</attribute>
         </xpath>
 
         <!--
             Referencia, precio unitario y descuento en un solo renglón.
 
-            Sustituye al del core, que imprime "899,00 € / Unidades": el
-            nombre de la unidad de medida no aporta nada en tienda y gasta
-            una línea de papel por artículo.
+            Sustituye en el ticket al renglón del core, que imprime
+            "899,00 € / Unidades": el nombre de la unidad de medida no aporta
+            nada en tienda y gasta una línea de papel por artículo. En pantalla
+            se mantiene el del core con su condición original.
+
+            El ancla es el <li> del precio unitario, que en esta compilación es
+            el único 'price-per-unit' cuya condición mira la cantidad.
         -->
-        <xpath expr="//li[hasclass('price-per-unit')][1]" position="replace">
-            <t t-if="vals.isReceipt">
-                <li class="bm-line-info">
-                    <t t-if="vals.bmProductRef"><t t-esc="vals.bmProductRef"/></t>
-                    <t t-if="vals.bmProductRef and vals.bmUnitPrice"> · </t>
-                    <t t-if="vals.bmUnitPrice"><t t-esc="vals.bmUnitPrice"/>/ud</t>
-                    <t t-if="vals.bmDiscount"> <t t-esc="vals.bmDiscount"/></t>
-                </li>
-            </t>
-            <t t-else="">
-                <li t-if="vals.displayPriceUnit" class="price-per-unit"
-                    t-out="vals.displayPriceUnit"/>
-            </t>
+        <xpath expr="//li[hasclass('price-per-unit')][contains(@t-if, 'getQuantity')]" position="before">
+            <li t-if="bmIsReceipt" class="bm-line-info">
+                <t t-if="bmProductRef"><t t-esc="bmProductRef"/></t>
+                <t t-if="!props.basic_receipt">
+                    <t t-if="bmProductRef"> · </t>
+                    <t t-esc="bmUnitPrice"/>/ud
+                    <t t-if="bmDiscount"> <t t-esc="bmDiscount"/></t>
+                </t>
+            </li>
+        </xpath>
+        <xpath expr="//li[hasclass('price-per-unit')][contains(@t-if, 'getQuantity')]" position="attributes">
+            <attribute name="t-if">!bmIsReceipt and !props.basic_receipt and this.props.line.getQuantity() != 1 and line.price_type !== 'original' and !line.combo_parent_id</attribute>
         </xpath>
 
-        <!-- El descuento en inglés del core sobra: ya va en el renglón de arriba -->
-        <xpath expr="//li[@t-if='vals.discount']" position="attributes">
-            <attribute name="t-if">vals.discount and !vals.isReceipt</attribute>
+        <!-- El descuento en inglés del core sobra en el ticket: ya va en el renglón de arriba -->
+        <xpath expr="//li[@t-if='line.discount']" position="attributes">
+            <attribute name="t-if">line.discount and !bmIsReceipt</attribute>
         </xpath>
 
     </t>
