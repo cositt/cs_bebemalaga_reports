@@ -115,3 +115,15 @@ El ticket de TPV se renderiza siempre en `.render-container`, oculto fuera de im
 ## Licencia
 
 LGPL-3.
+
+## Ticket de TPV y versión de Odoo
+
+Las plantillas OWL del TPV se heredan en el navegador: si un `xpath` no encaja con la compilación de Odoo instalada, el servidor no registra nada y el TPV se queda en blanco al añadir la primera línea.
+
+Producción corre `odoo:19.0-20250918`, que no tiene `lineScreenValues` ni `vals` en `point_of_sale.Orderline`. Antes de desplegar cambios en `static/src/app/**`, o al cambiar la imagen de Odoo, ejecutar el test contra **la etiqueta fechada de producción** (no `odoo:19.0`, que apunta a la última):
+
+```bash
+docker run --rm --entrypoint python3 \
+    -v "$PWD":/mnt/cs_bebemalaga_reports:ro odoo:19.0-20250918 \
+    /mnt/cs_bebemalaga_reports/tests/test_pos_template_inheritance.py
+```
